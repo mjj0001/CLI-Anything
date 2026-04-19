@@ -880,6 +880,13 @@ Each application received complete, production-ready CLI interfaces — not demo
 <td align="center">✅ <a href="zotero/agent-harness/">New</a></td>
 </tr>
 <tr>
+<td align="center"><strong>📖 <a href="calibre/agent-harness/">Calibre</a></strong></td>
+<td>E-book Library Management</td>
+<td><code>cli-anything-calibre</code></td>
+<td>calibredb + ebook-convert + ebook-meta</td>
+<td align="center">✅ <a href="calibre/agent-harness/">38</a></td>
+</tr>
+<tr>
 <td align="center"><strong>📝 <a href="mubu/agent-harness/">Mubu</a></strong></td>
 <td>Knowledge Management &amp; Outlining</td>
 <td><code>cli-anything-mubu</code></td>
@@ -1191,6 +1198,7 @@ cli-anything/
 ├── 📄 libreoffice/agent-harness/        # LibreOffice CLI (158 tests)
 ├── 📧 mailchimp/agent-harness/          # Mailchimp Marketing API CLI (303 commands, 36 unit tests)
 ├── 📚 zotero/agent-harness/             # Zotero CLI (new, write import support)
+├── 📖 calibre/agent-harness/            # Calibre CLI (38 tests)
 ├── 📝 mubu/agent-harness/               # Mubu CLI (96 tests)
 ├── 📹 obs-studio/agent-harness/         # OBS Studio CLI (153 tests)
 ├── 📱 nslogger/agent-harness/           # NSLogger CLI (139 tests)
