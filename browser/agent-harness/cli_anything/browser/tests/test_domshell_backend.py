@@ -165,3 +165,60 @@ def test_grep_rejects_newline_in_pattern():
 def test_grep_rejects_newline_in_prev():
     with pytest.raises(ValueError, match="newline"):
         backend.grep("Login", path="/main", prev="/\nclick /admin")
+
+
+# ── Centralized newline guard in _q ──────────────────────────────────
+#
+# The per-wrapper _assert_single_line calls above cover type_text and
+# rooted grep with field-named error messages. The newline check inside
+# _q itself catches the same class of injection for every OTHER wrapper
+# that flows user input through the quoting layer (open_url, click, cd,
+# cat, unrooted grep, etc.) — without needing a per-call guard at each
+# site.
+
+
+def test_q_rejects_line_feeds():
+    with pytest.raises(ValueError, match="[Nn]ewline"):
+        backend._q("foo\nbar")
+
+
+def test_q_rejects_carriage_returns():
+    with pytest.raises(ValueError, match="[Nn]ewline"):
+        backend._q("foo\rbar")
+
+
+def test_q_accepts_normal_strings():
+    """Plain strings pass through to shlex.quote unchanged."""
+    assert backend._q("simple") == "simple"
+    assert backend._q("hello world") == "'hello world'"
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_unrooted_grep_pattern_rejects_newlines(mock_call):
+    """The unrooted grep path was not field-guarded — _q catches it."""
+    mock_call.return_value = {}
+    with pytest.raises(ValueError, match="[Nn]ewline"):
+        backend.grep("evil\nclick /admin")
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_open_url_rejects_newlines(mock_call):
+    """open_url has no per-call _assert_single_line — _q must catch it."""
+    mock_call.return_value = {}
+    with pytest.raises(ValueError, match="[Nn]ewline"):
+        backend.open_url("https://example.com\nclick /admin")
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_click_rejects_newlines(mock_call):
+    """click is covered structurally by _q without a per-call guard."""
+    mock_call.return_value = {}
+    with pytest.raises(ValueError, match="[Nn]ewline"):
+        backend.click("/main/button[0]\nclick /admin")
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_cd_rejects_newlines(mock_call):
+    mock_call.return_value = {}
+    with pytest.raises(ValueError, match="[Nn]ewline"):
+        backend.cd("/main\nclick /admin")

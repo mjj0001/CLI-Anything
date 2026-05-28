@@ -117,7 +117,26 @@ def is_available() -> tuple[bool, str]:
 
 
 def _q(arg: str) -> str:
-    """Quote an argument for the DOMShell command parser (shell-style)."""
+    """Quote an argument for the DOMShell command parser (shell-style).
+
+    Rejects newlines: DOMShell's ``domshell_execute`` splits multi-line
+    input *before* shell-style quote parsing, so a ``\\n`` or ``\\r``
+    inside an otherwise-quoted argument still becomes a command
+    separator. Enforcing the check here means every wrapper that flows
+    user input through ``_q`` is protected by default, instead of
+    relying on per-call ``_assert_single_line`` at each call site.
+
+    Wrappers may still call ``_assert_single_line`` ahead of ``_q`` when a
+    field-named error message (e.g. ``"text: ..."``) is more useful than
+    the generic one raised here.
+    """
+    if "\n" in arg or "\r" in arg:
+        raise ValueError(
+            "Newline characters are not allowed in command arguments — "
+            "DOMShell's domshell_execute treats them as command separators, "
+            "so a newline inside any wrapper input would inject additional "
+            f"commands. Got: {arg!r}"
+        )
     return shlex.quote(arg)
 
 
