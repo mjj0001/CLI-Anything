@@ -68,6 +68,12 @@ cli-anything-siyuan export md <doc-id>
 
 # Show status
 cli-anything-siyuan status
+
+# Insert a block (multi-line content via stdin)
+cat note.md | cli-anything-siyuan block insert --parent <block-id>
+
+# Update a block content via stdin
+echo "new content" | cli-anything-siyuan block update <block-id>
 ```
 
 ### REPL mode
@@ -108,8 +114,8 @@ siyuan ❯ quit
 | `doc get <id>` | Get document path by ID |
 | `doc rename <id> <title>` | Rename a document |
 | `doc remove <id>` | Delete a document |
-| `block insert <data>` | Insert a block |
-| `block update <id> <data>` | Update a block |
+| `block insert <data>` | Insert a block (use `-` or omit for stdin pipe) |
+| `block update <id> <data>` | Update block content (use `-` or omit for stdin pipe) |
 | `block delete <id>` | Delete a block |
 | `block get <id>` | Get block kramdown source |
 | `block children <id>` | Get child blocks |

@@ -137,3 +137,23 @@ Since SiYuan has no headless CLI backend, the harness will:
 
 The SiYuan instance must be running with the API server enabled (default: port 6806).
 The API token can be found in Settings → About.
+
+## CLI Usage Notes
+
+### Block insert/update with multi-line content
+
+`block insert` and `block update` accept data via stdin pipe when the argument is `-` or omitted:
+
+```bash
+# Pipe multi-line content
+cat note.md | cli-anything-siyuan block insert --parent <block-id>
+
+# Explicit stdin marker
+echo "hello" | cli-anything-siyuan block update <block-id> -
+
+# Requires one of: --parent <id>, --previous <id>, --next <id>
+```
+
+### Tag list
+
+`tag list` sends `ignoreMaxListHint: true` to ensure all tags are returned regardless of `Conf.FileTree.MaxListCount`. Tag-heavy workspaces return the complete list.
