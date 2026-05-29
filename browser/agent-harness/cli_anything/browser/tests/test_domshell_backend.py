@@ -6,9 +6,12 @@ regressions (quoting, command names, multi-line layout, restore ordering)
 fail loudly.
 """
 
-import pytest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, call, patch
 
+import pytest
+
+from cli_anything.browser.core.session import Session
 from cli_anything.browser.utils import domshell_backend as backend
 
 
@@ -232,11 +235,6 @@ def test_cd_rejects_newlines(mock_call):
 # on every subsequent call.
 
 
-from types import SimpleNamespace
-
-from cli_anything.browser.core.session import Session
-
-
 def _make_result(text: str):
     """Build a fake CallToolResult whose ``content[0].text`` is ``text``."""
     return SimpleNamespace(content=[SimpleNamespace(text=text)])
@@ -391,10 +389,15 @@ def test_distinct_sessions_have_isolated_lanes():
 
 
 # ── Keyword-only enforcement on session= ─────────────────────────────
+#
+# Only ``session`` is keyword-only; ``use_daemon`` stays positional so
+# pre-2.0.0 callers like ``ls("/", True)`` keep working. ``grep`` is a
+# deliberate exception (fully keyword-only after the round-1 review).
 
 
 def test_session_is_keyword_only_on_click():
-    """Discipline matches grep's earlier keyword-only fix."""
+    """Trailing positional `None` is interpreted as a 3rd positional arg
+    that the wrapper doesn't accept — must raise TypeError."""
     with pytest.raises(TypeError):
         backend.click("submit_btn", False, None)  # type: ignore[misc]
 
@@ -412,3 +415,40 @@ def test_session_is_keyword_only_on_type_text():
 def test_session_is_keyword_only_on_open_url():
     with pytest.raises(TypeError):
         backend.open_url("https://example.com", False, None)  # type: ignore[misc]
+
+
+# ── Positional `use_daemon` stays valid ──────────────────────────────
+#
+# These guard against accidentally pulling ``use_daemon`` behind the ``*``
+# in the future. Pre-2.0.0 calls written as ``ls("/", True)`` must not
+# regress to ``TypeError``.
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_use_daemon_positional_on_ls(mock_call):
+    mock_call.return_value = {}
+    backend.ls("/", True)  # use_daemon=True positionally
+    assert mock_call.call_args == call("ls /", True, session=None)
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_use_daemon_positional_on_click(mock_call):
+    mock_call.return_value = {}
+    backend.click("submit_btn", True)
+    assert mock_call.call_args == call("click submit_btn", True, session=None)
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_use_daemon_positional_on_reload(mock_call):
+    mock_call.return_value = {}
+    backend.reload(True)
+    assert mock_call.call_args == call("refresh", True, session=None)
+
+
+@patch.object(backend, "_call_execute", new_callable=AsyncMock)
+def test_use_daemon_positional_on_type_text(mock_call):
+    mock_call.return_value = {}
+    backend.type_text("input", "hello", True)
+    assert mock_call.call_args == call(
+        "focus input\ntype hello", True, session=None
+    )

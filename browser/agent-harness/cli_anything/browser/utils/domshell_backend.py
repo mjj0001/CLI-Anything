@@ -132,11 +132,15 @@ def _q(arg: str) -> str:
     the generic one raised here.
     """
     if "\n" in arg or "\r" in arg:
+        # Bound the echoed value so an arbitrarily large untrusted payload
+        # (e.g. a multi-line paste from the page) doesn't end up verbatim
+        # in error messages or downstream logs / telemetry.
+        preview = arg[:80] + ("…" if len(arg) > 80 else "")
         raise ValueError(
             "Newline characters are not allowed in command arguments — "
             "DOMShell's domshell_execute treats them as command separators, "
             "so a newline inside any wrapper input would inject additional "
-            f"commands. Got: {arg!r}"
+            f"commands. Got ({len(arg)} chars): {preview!r}"
         )
     return shlex.quote(arg)
 
@@ -339,7 +343,7 @@ def daemon_started() -> bool:
 # `domshell_execute`. The public Python API is unchanged from the
 # pre-2.0.0 per-tool wrappers.
 
-def ls(path: str = "/", *, use_daemon: bool = False, session: Any = None) -> dict:
+def ls(path: str = "/", use_daemon: bool = False, *, session: Any = None) -> dict:
     """List directory contents in the accessibility tree.
 
     Args:
@@ -354,11 +358,10 @@ def ls(path: str = "/", *, use_daemon: bool = False, session: Any = None) -> dic
         >>> ls("/")
         {"path": "/", "entries": [{"name": "main", "role": "landmark", ...}]}
     """
-    command = f"ls {_q(path)}" if path else "ls"
-    return asyncio.run(_call_execute(command, use_daemon, session=session))
+    return asyncio.run(_call_execute(f"ls {_q(path)}", use_daemon, session=session))
 
 
-def cd(path: str, *, use_daemon: bool = False, session: Any = None) -> dict:
+def cd(path: str, use_daemon: bool = False, *, session: Any = None) -> dict:
     """Change directory in the accessibility tree.
 
     Args:
@@ -376,7 +379,7 @@ def cd(path: str, *, use_daemon: bool = False, session: Any = None) -> dict:
     return asyncio.run(_call_execute(f"cd {_q(path)}", use_daemon, session=session))
 
 
-def cat(path: str, *, use_daemon: bool = False, session: Any = None) -> dict:
+def cat(path: str, use_daemon: bool = False, *, session: Any = None) -> dict:
     """Read element content from the accessibility tree.
 
     Args:
@@ -447,7 +450,7 @@ def grep(
     )
 
 
-def click(path: str, *, use_daemon: bool = False, session: Any = None) -> dict:
+def click(path: str, use_daemon: bool = False, *, session: Any = None) -> dict:
     """Click an element in the accessibility tree.
 
     Args:
@@ -467,7 +470,7 @@ def click(path: str, *, use_daemon: bool = False, session: Any = None) -> dict:
     )
 
 
-def open_url(url: str, *, use_daemon: bool = False, session: Any = None) -> dict:
+def open_url(url: str, use_daemon: bool = False, *, session: Any = None) -> dict:
     """Navigate to a URL in Chrome.
 
     Args:
@@ -487,7 +490,7 @@ def open_url(url: str, *, use_daemon: bool = False, session: Any = None) -> dict
     )
 
 
-def reload(*, use_daemon: bool = False, session: Any = None) -> dict:
+def reload(use_daemon: bool = False, *, session: Any = None) -> dict:
     """Reload the current page.
 
     Args:
@@ -500,7 +503,7 @@ def reload(*, use_daemon: bool = False, session: Any = None) -> dict:
     return asyncio.run(_call_execute("refresh", use_daemon, session=session))
 
 
-def back(*, use_daemon: bool = False, session: Any = None) -> dict:
+def back(use_daemon: bool = False, *, session: Any = None) -> dict:
     """Navigate back in history.
 
     Args:
@@ -513,7 +516,7 @@ def back(*, use_daemon: bool = False, session: Any = None) -> dict:
     return asyncio.run(_call_execute("back", use_daemon, session=session))
 
 
-def forward(*, use_daemon: bool = False, session: Any = None) -> dict:
+def forward(use_daemon: bool = False, *, session: Any = None) -> dict:
     """Navigate forward in history.
 
     Args:
@@ -529,8 +532,8 @@ def forward(*, use_daemon: bool = False, session: Any = None) -> dict:
 def type_text(
     path: str,
     text: str,
-    *,
     use_daemon: bool = False,
+    *,
     session: Any = None,
 ) -> dict:
     """Type text into an input element.
