@@ -114,6 +114,8 @@ def load_project(project_path: str | Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Project file not found: {path}")
     data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("Project file must be a JSON object")
     if data.get("schema_version") != SCHEMA_VERSION:
         raise ValueError(f"Unsupported WaveTone project schema: {data.get('schema_version')!r}")
     return data
@@ -126,7 +128,7 @@ def add_label(
     note: str | None = None,
 ) -> dict[str, Any]:
     time_value = _finite_float(time_seconds, "Label time")
-    if time_seconds < 0:
+    if time_value < 0:
         raise ValueError("Label time must be >= 0")
     label: dict[str, Any] = {"name": name, "time_seconds": round(time_value, 6)}
     if note:

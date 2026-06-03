@@ -82,7 +82,7 @@ def _probe_ffprobe(path: Path) -> dict[str, Any]:
         "codec": audio_stream.get("codec_name"),
         "duration_seconds": round(duration, 6) if duration is not None else None,
         "sample_rate": _safe_int(audio_stream.get("sample_rate")),
-        "channels": audio_stream.get("channels"),
+        "channels": _safe_int(audio_stream.get("channels")),
         "bit_rate": _safe_int(fmt.get("bit_rate")),
         "size_bytes": _safe_int(fmt.get("size")) or path.stat().st_size,
         "probe_method": "ffprobe",

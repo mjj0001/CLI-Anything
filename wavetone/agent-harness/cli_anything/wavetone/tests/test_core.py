@@ -60,8 +60,9 @@ def test_labels_are_sorted(tmp_path: Path) -> None:
     project = create_project(wav)
     add_label(project, "late", 4.0)
     add_label(project, "early", 1.0)
+    add_label(project, "middle", "2.5")
 
-    assert [label["name"] for label in project["labels"]] == ["early", "late"]
+    assert [label["name"] for label in project["labels"]] == ["early", "middle", "late"]
 
 
 def test_update_analysis_settings(tmp_path: Path) -> None:
@@ -83,6 +84,14 @@ def test_rejects_non_finite_project_numbers(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="reference_frequency_hz.*finite"):
         update_analysis(project, reference_frequency_hz=float("inf"))
+
+
+def test_load_project_rejects_non_object_json(tmp_path: Path) -> None:
+    project_path = tmp_path / "broken.wt.json"
+    project_path.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="JSON object"):
+        load_project(project_path)
 
 
 def test_probe_wav_metadata(tmp_path: Path) -> None:
@@ -124,7 +133,7 @@ def test_ffprobe_uses_single_show_entries_argument(tmp_path: Path, monkeypatch: 
                         "codec_type": "audio",
                         "codec_name": "mp3",
                         "sample_rate": "44100",
-                        "channels": 2,
+                        "channels": "2",
                     }
                 ],
                 "format": {
@@ -147,6 +156,7 @@ def test_ffprobe_uses_single_show_entries_argument(tmp_path: Path, monkeypatch: 
     assert ":format=duration,format_name,bit_rate,size" in entries
     assert info["probe_method"] == "ffprobe"
     assert info["sample_rate"] == 44100
+    assert info["channels"] == 2
 
 
 def test_ffprobe_handles_non_numeric_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -199,6 +209,13 @@ def test_session_rejects_invalid_schema(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="events.*list"):
         load_events(session_path)
+
+    session_path.unlink()
+
+    with pytest.raises(ValueError, match="finite"):
+        append_event(session_path, "bad", {"value": float("nan")})
+
+    assert not session_path.exists()
 
 
 def test_find_wavetone_from_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
