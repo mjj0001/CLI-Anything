@@ -12,6 +12,8 @@ import pytest
 from cli_anything.wavetone.tests.helpers import make_wav
 from cli_anything.wavetone.utils import wavetone_backend
 
+REAL_BACKEND_ENV = "CLI_ANYTHING_WAVETONE_REAL_BACKEND"
+
 
 def _resolve_cli(name: str) -> list[str]:
     """Resolve installed CLI command; fall back to python -m for development."""
@@ -27,9 +29,17 @@ def _resolve_cli(name: str) -> list[str]:
     return [sys.executable, "-m", module]
 
 
+def _env_flag_enabled(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _real_backend_ready() -> tuple[bool, str]:
+    if not _env_flag_enabled(REAL_BACKEND_ENV):
+        return False, f"set {REAL_BACKEND_ENV}=1 with WAVETONE_EXE or WAVETONE_HOME to run real backend tests"
     if sys.platform != "win32":
         return False, "WaveTone real-backend tests require Windows"
+    if not (os.environ.get("WAVETONE_EXE") or os.environ.get("WAVETONE_HOME")):
+        return False, "set WAVETONE_EXE or WAVETONE_HOME to run real backend tests"
 
     status = wavetone_backend.doctor()
     if status.get("ready"):
@@ -41,6 +51,17 @@ def _real_backend_ready() -> tuple[bool, str]:
 
 
 _REAL_BACKEND_READY, _REAL_BACKEND_SKIP_REASON = _real_backend_ready()
+
+
+def test_real_backend_requires_explicit_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(REAL_BACKEND_ENV, raising=False)
+    monkeypatch.delenv("WAVETONE_EXE", raising=False)
+    monkeypatch.delenv("WAVETONE_HOME", raising=False)
+
+    ready, reason = _real_backend_ready()
+
+    assert ready is False
+    assert REAL_BACKEND_ENV in reason
 
 
 class TestCLISubprocess:

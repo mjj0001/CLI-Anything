@@ -4,9 +4,11 @@ import json
 import subprocess
 from pathlib import Path
 
+import click
 import pytest
 from click.testing import CliRunner
 
+from cli_anything.wavetone import wavetone_cli as cli_module
 from cli_anything.wavetone.core import audio as audio_core
 from cli_anything.wavetone.core.audio import probe_audio
 from cli_anything.wavetone.core.project import (
@@ -312,3 +314,42 @@ def test_repl_split_strips_windows_quotes() -> None:
         "-o",
         "C:\\Users\\me\\song.wt.json",
     ]
+
+
+def test_repl_reports_click_exit_without_unexpected_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    errors: list[str] = []
+    inputs = iter(["wavetone launch", "exit"])
+
+    class FakeSkin:
+        def __init__(self, name: str, version: str) -> None:
+            self.name = name
+            self.version = version
+
+        def print_banner(self) -> None:
+            return None
+
+        def info(self, message: str) -> None:
+            return None
+
+        def create_prompt_session(self) -> object:
+            return object()
+
+        def get_input(self, prompt_session: object, project_name: str, modified: bool) -> str:
+            return next(inputs)
+
+        def error(self, message: str) -> None:
+            errors.append(message)
+
+        def print_goodbye(self) -> None:
+            return None
+
+    def fake_main(**kwargs: object) -> None:
+        raise click.exceptions.Exit(1)
+
+    monkeypatch.setattr(cli_module, "ReplSkin", FakeSkin)
+    monkeypatch.setattr(cli_module.cli, "main", fake_main)
+
+    result = CliRunner().invoke(cli_module.repl, [], obj={"json": False})
+
+    assert result.exit_code == 0, result.output
+    assert errors == ["Command exited with code 1"]
