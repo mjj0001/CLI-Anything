@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import shlex
 from pathlib import Path
 from typing import Any
@@ -55,6 +54,16 @@ def load_ctx_project(ctx: click.Context, explicit_path: str | Path | None = None
     return load_project(path), path
 
 
+def _strip_matching_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
+
+
+def _split_repl_args(line: str) -> list[str]:
+    return [_strip_matching_quotes(arg) for arg in shlex.split(line, posix=False)]
+
+
 @click.group(invoke_without_command=True)
 @click.option("--project", "project_path", type=click.Path(dir_okay=False), help="WaveTone project JSON path.")
 @click.option("--json", "json_mode", is_flag=True, help="Emit machine-readable JSON.")
@@ -97,7 +106,7 @@ def repl(ctx: click.Context) -> None:
             click.echo(cli.get_help(ctx))
             continue
         try:
-            args = shlex.split(line, posix=(os.name != "nt"))
+            args = _split_repl_args(line)
             cli.main(args=args, prog_name="cli-anything-wavetone", standalone_mode=False, obj=ctx.obj)
         except click.ClickException as exc:  # pragma: no cover
             skin.error(exc.format_message())

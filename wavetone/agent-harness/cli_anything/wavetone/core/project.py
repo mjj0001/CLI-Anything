@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -55,6 +56,13 @@ def normalize_audio_path(audio_path: str | Path) -> Path:
     return path
 
 
+def _finite_float(value: float, field_name: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{field_name} must be finite")
+    return number
+
+
 def create_project(
     audio_path: str | Path,
     name: str | None = None,
@@ -97,7 +105,7 @@ def save_project(project: dict[str, Any], output_path: str | Path) -> Path:
     path = Path(output_path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     touch(project)
-    path.write_text(json.dumps(project, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(project, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
     return path
 
 
@@ -117,9 +125,10 @@ def add_label(
     time_seconds: float,
     note: str | None = None,
 ) -> dict[str, Any]:
+    time_value = _finite_float(time_seconds, "Label time")
     if time_seconds < 0:
         raise ValueError("Label time must be >= 0")
-    label: dict[str, Any] = {"name": name, "time_seconds": round(float(time_seconds), 6)}
+    label: dict[str, Any] = {"name": name, "time_seconds": round(time_value, 6)}
     if note:
         label["note"] = note
     project.setdefault("labels", []).append(label)
@@ -133,13 +142,15 @@ def set_tempo(
     first_bar_time_seconds: float = 0.0,
     meter: str = "4/4",
 ) -> dict[str, Any]:
-    if bpm <= 0:
+    bpm_value = _finite_float(bpm, "BPM")
+    first_bar_value = _finite_float(first_bar_time_seconds, "First bar time")
+    if bpm_value <= 0:
         raise ValueError("BPM must be > 0")
-    if first_bar_time_seconds < 0:
+    if first_bar_value < 0:
         raise ValueError("First bar time must be >= 0")
     project["tempo"] = {
-        "bpm": round(float(bpm), 6),
-        "first_bar_time_seconds": round(float(first_bar_time_seconds), 6),
+        "bpm": round(bpm_value, 6),
+        "first_bar_time_seconds": round(first_bar_value, 6),
         "meter": meter,
     }
     return touch(project)
@@ -149,6 +160,8 @@ def update_analysis(project: dict[str, Any], **settings: Any) -> dict[str, Any]:
     analysis = project.setdefault("analysis", deepcopy(DEFAULT_ANALYSIS_SETTINGS))
     for key, value in settings.items():
         if value is not None:
+            if isinstance(value, float) and not math.isfinite(value):
+                raise ValueError(f"{key} must be finite")
             analysis[key] = value
     return touch(project)
 

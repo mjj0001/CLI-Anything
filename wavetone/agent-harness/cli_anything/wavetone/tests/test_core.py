@@ -21,7 +21,7 @@ from cli_anything.wavetone.core.project import (
 from cli_anything.wavetone.core.session import append_event, load_events
 from cli_anything.wavetone.tests.helpers import make_wav
 from cli_anything.wavetone.utils import wavetone_backend
-from cli_anything.wavetone.wavetone_cli import cli
+from cli_anything.wavetone.wavetone_cli import _split_repl_args, cli
 
 
 def test_create_project_manifest(tmp_path: Path) -> None:
@@ -72,6 +72,17 @@ def test_update_analysis_settings(tmp_path: Path) -> None:
     assert project["analysis"]["channel"] == "L+R"
     assert project["analysis"]["blocks_per_second"] == 24
     assert project["analysis"]["analyze_fundamental_frequency"] is False
+
+
+def test_rejects_non_finite_project_numbers(tmp_path: Path) -> None:
+    wav = make_wav(tmp_path / "tone.wav")
+    project = create_project(wav)
+
+    with pytest.raises(ValueError, match="BPM.*finite"):
+        set_tempo(project, float("nan"))
+
+    with pytest.raises(ValueError, match="reference_frequency_hz.*finite"):
+        update_analysis(project, reference_frequency_hz=float("inf"))
 
 
 def test_probe_wav_metadata(tmp_path: Path) -> None:
@@ -238,3 +249,15 @@ def test_launch_requires_windows(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(RuntimeError, match="requires Windows"):
         wavetone_backend.launch_wavetone()
+
+
+def test_repl_split_strips_windows_quotes() -> None:
+    line = 'project new "C:\\Users\\me\\My Music\\song.wav" -o "C:\\Users\\me\\song.wt.json"'
+
+    assert _split_repl_args(line) == [
+        "project",
+        "new",
+        "C:\\Users\\me\\My Music\\song.wav",
+        "-o",
+        "C:\\Users\\me\\song.wt.json",
+    ]
