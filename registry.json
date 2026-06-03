@@ -101,6 +101,25 @@
       ]
     },
     {
+      "name": "wavetone",
+      "display_name": "WaveTone",
+      "version": "1.0.0",
+      "description": "Prepare WaveTone 2.61 audio transcription manifests, probe audio files, and launch the real Windows WaveTone executable",
+      "requires": "WaveTone 2.61 extracted on Windows; set WAVETONE_EXE or WAVETONE_HOME",
+      "homepage": "http://ackiesound.ifdef.jp/",
+      "source_url": null,
+      "install_cmd": "pip install git+https://github.com/HKUDS/CLI-Anything.git#subdirectory=wavetone/agent-harness",
+      "entry_point": "cli-anything-wavetone",
+      "skill_md": "skills/cli-anything-wavetone/SKILL.md",
+      "category": "audio",
+      "contributors": [
+        {
+          "name": "Shuhan Zhang",
+          "url": "https://github.com/Manifold68575"
+        }
+      ]
+    },
+    {
       "name": "blender",
       "display_name": "Blender",
       "version": "1.0.0",

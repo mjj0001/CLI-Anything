@@ -1,0 +1,100 @@
+# WaveTone Harness Test Plan and Results
+
+## Test Inventory Plan
+
+- `test_core.py`: 8 unit tests for project manifests, audio probing, session logs,
+  and backend discovery.
+- `test_full_e2e.py`: 5 E2E tests covering CLI subprocess workflows and real
+  WaveTone launch smoke coverage.
+
+## Unit Test Plan
+
+- Create a manifest from a supported WAV file.
+- Reject missing files and unsupported extensions.
+- Save and load schema-compatible JSON.
+- Add labels in sorted time order.
+- Set tempo and analysis options.
+- Probe a generated WAV file with the Python stdlib.
+- Append and reload session events.
+- Resolve `WAVETONE_EXE` from the environment.
+
+## E2E Test Plan
+
+### CLI Project Workflow
+
+Simulates an agent preparing an audio file before opening it in WaveTone.
+
+Operations:
+
+1. Generate a real WAV fixture.
+2. Run `cli-anything-wavetone --json project new`.
+3. Run `project set-tempo`.
+4. Run `project add-label`.
+5. Run `audio probe`.
+
+Verified:
+
+- CLI JSON is parseable.
+- Project file exists.
+- Labels and tempo persist.
+- Audio metadata is correct.
+
+### CLI Backend Workflow
+
+Simulates an agent validating the installed WaveTone backend.
+
+Operations:
+
+1. Run `wavetone doctor`.
+2. Run `wavetone formats`.
+3. Launch the real `wavetone.exe` with a generated WAV and terminate it after a
+   short wait.
+
+Verified:
+
+- Doctor reports all bundled files.
+- Formats include documented WaveTone audio extensions.
+- Real WaveTone process starts and is terminated by the smoke test.
+
+## Test Results
+
+Command:
+
+```bash
+$env:PATH = "$env:APPDATA\Python\Python313\Scripts;$env:PATH"
+python -m pytest cli_anything\wavetone\tests\ -v -s
+```
+
+Result:
+
+```text
+collected 13 items
+
+cli_anything/wavetone/tests/test_core.py::test_create_project_manifest PASSED
+cli_anything/wavetone/tests/test_core.py::test_rejects_unsupported_audio PASSED
+cli_anything/wavetone/tests/test_core.py::test_save_load_project_roundtrip PASSED
+cli_anything/wavetone/tests/test_core.py::test_labels_are_sorted PASSED
+cli_anything/wavetone/tests/test_core.py::test_update_analysis_settings PASSED
+cli_anything/wavetone/tests/test_core.py::test_probe_wav_metadata PASSED
+cli_anything/wavetone/tests/test_core.py::test_session_event_log PASSED
+cli_anything/wavetone/tests/test_core.py::test_find_wavetone_from_env PASSED
+cli_anything/wavetone/tests/test_full_e2e.py::TestCLISubprocess::test_help PASSED
+cli_anything/wavetone/tests/test_full_e2e.py::TestCLISubprocess::test_project_audio_workflow_json PASSED
+cli_anything/wavetone/tests/test_full_e2e.py::TestCLISubprocess::test_formats_json PASSED
+cli_anything/wavetone/tests/test_full_e2e.py::TestRealWaveToneBackend::test_doctor_real_backend PASSED
+cli_anything/wavetone/tests/test_full_e2e.py::TestRealWaveToneBackend::test_launch_real_backend_with_wav PASSED
+
+13 passed in 4.64s
+```
+
+## Coverage Notes
+
+- Unit tests cover manifest creation, validation, persistence, labels, tempo,
+  analysis settings, audio probing, session logs, and backend discovery.
+- CLI subprocess tests resolve and use the installed `cli-anything-wavetone`
+  entry point.
+- Real backend coverage launches `C:\Users\Hp\Desktop\wavetone2.6.1\wavetone.exe`
+  with a generated WAV and terminates it after a short wait.
+- WaveTone 2.61 has no documented headless analysis/export API. Export
+  verification remains a known gap until a stable non-GUI automation surface is
+  discovered.
