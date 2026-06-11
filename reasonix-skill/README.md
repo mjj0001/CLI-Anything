@@ -35,13 +35,13 @@ To ensure builds complete successfully, set `agent.max_steps = 0` in your `reaso
 
 ## Usage
 
-After installation, invoke the skill in any Reasonix session:
+After installation, use slash invocation to inline the skill into the parent Reasonix loop:
 
 ```
 /cli-anything https://github.com/GNOME/gimp
 ```
 
-Or via the `run_skill` API:
+Use `run_skill` when you want isolated subagent execution. The same isolation applies when Reasonix invokes the skill through its dedicated subagent path:
 
 ```
 run_skill({ name: "cli-anything", arguments: "/path/to/software" })
